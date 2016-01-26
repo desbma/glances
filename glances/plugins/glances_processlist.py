@@ -54,6 +54,22 @@ def split_process_cmdline(process):
         arguments = process['cmdline'][len(process['exe']):].lstrip()
     elif process['cmdline'].startswith(process['name']):
         arguments = process['cmdline'][len(process['name']):].lstrip()
+    else:
+        # starting from here, this is guess work
+        try:
+            path, args = process['cmdline'].split(" ", 1)
+        except ValueError:
+            path = process['cmdline']
+            args = None
+        bn = os.path.basename(path)
+        if bn == process['name']:
+            dirname, basename = os.path.split(path)
+            if args is not None:
+                arguments = args.lstrip()
+        elif bn.startswith("-") and (bn[1:] == process['name']):
+            basename = bn
+            if args is not None:
+                arguments = args.lstrip()
     return dirname, basename, arguments
 
 
@@ -304,7 +320,7 @@ class Plugin(GlancesPlugin):
         # Command line
         dirname, name, arguments = split_process_cmdline(p)
         try:
-            if (dirname is None) and (arguments is None):
+            if not p['cmdline']:
                 msg = ' {0}'.format(name)
                 ret.append(self.curse_add_line(msg, splittable=True))
             elif args.process_short_name:
